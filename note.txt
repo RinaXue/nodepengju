@@ -1,0 +1,135 @@
+一、创建项目
+	cnpm i express-generator -g (只需要执行一次)
+	express myapp --view=ejs (要使用ejs模板--跟html最相近)
+	cd myapp
+	cnpm i 
+	修改package.json
+	cnpm run dev
+二、学习ejs语法
+	routes/index.js中有以下语句，其中title就是一个变量，这个变量可以渲染到页面中
+		res.render('index', { title: 'sh1811' });
+	views/index.ejs中可以使用以下语法渲染后端所传递的数据
+		ejs 语法：https://ejs.bootcss.com/
+		<%  %>  '脚本' 标签，用于流程控制，无输出 --- js的逻辑处理（条件判断/遍历）
+		<%= %>	输出数据到模板（输出是转义 HTML 标签）--- html标签会原样输出
+		<%- %>	输出非转义的数据到模板  ----  html标签会被解析
+		<%_ %>  删除其前面的空格符
+		<%# %>  注释标签，不执行、不输出内容
+		<%% %>  输出字符串 '<%'
+		%> 一般结束标签
+		-%> 删除紧随其后的换行符
+		_%> 将结束标签后面的空格符删除
+		
+		<%- include(path) %> 将path页面包含到当前页面
+三、构建一个后台管理系统 基于 http://adminlte.la998.com/starter.html
+	1、复制AdminLTE-2.3.7下的starter.html代码到index.ejs
+	2、复制AdminLTE-2.3.7下的bootstrap、dist、plugins三个文件夹到public文件加内,将页面内部的静态资源文件前加/
+	3、折叠代码分出头部header.ejs，左侧的内容menu.ejs,底部footer.ejs，右侧面板sidebar.ejs,
+	index.ejs中导入即可
+	4、编辑menu.ejs中的导航
+		首页/用户管理/产品管理/购物车管理
+	5、编辑页面对应的路由
+		cart.js  product.js  users.js 编辑好
+	6、要想路由生效，必须在app.js出加入路由
+		var indexRouter = require('./routes/index');
+		var usersRouter = require('./routes/users');
+		var productRouter = require('./routes/product');
+		var cartRouter = require('./routes/cart');
+		app.use('/', indexRouter);
+		app.use('/users', usersRouter);
+		app.use('/cart', cartRouter);
+		app.use('/product', productRouter);
+	7、menu.ejs中使用路由完成页面跳转
+	8、选中样式
+		以cart.js为例,同理index.js、users.js、product.js都需要修改
+		res.render('cart', {
+			activeIndex: 4
+		});
+		menu.ejs中就可以这么写
+			<li class="<%= activeIndex === 4 ? 'active' : '' %>"></li>
+	
+	9、users.ejs中添加数据的表格
+		http://adminlte.la998.com/pages/tables/simple.html
+		审查元素，选中box区域，copy=>copy outerhtml，复制到固定区域（your page content here）,修改表格格式以及数据类型（序号、昵称、手机号、操作）
+		表头中添加 （+添加用户）按钮，设定路由为/users/add
+			<a href="/users/add">
+				<button class="btn btn-sm btn-primary">
+					<span class="glyphicon glyphicon-plus"></span>添加用户
+				</button>
+			</a>
+		新增页面users_add.ejs,找到内容复制进去即可
+		
+		routes/users.js中添加新路由
+			router.get('/add', function(req, res, next) {
+			  res.render('users_add', { 
+					activeIndex: 2
+				});
+			});
+	10、实现添加用户功能
+		form表单确定路由为 /users/addAction, 表单中input一定要添加name属性
+		users.js中通过req.body获取前端post提交过来的数据 tel, nickname, password
+		cnpm i mongodb -D   引入tool/sql.js
+		以手机号作为唯一标准判断是不是有该用户，如果没有该用户（data.length == 0），则表示可以添加此用户
+			cnpm i md5 -D
+			首先密码需要加密，然后再插入数据库,返回列表（res.redirect('/users')）
+		如果有该用户，那么返回即可（或者给用户提示信息）
+	11、 实现查询功能 users.js,并且渲染数据于users.ejs
+		router.get('/', function(req, res, next) {
+			sql.find('sh1811', 'users', {}).then(data => {
+				res.render('users', { 
+					activeIndex: 2,
+					data    //  < == > data: data
+				});
+			}).catch(err => {
+				console.log(err)
+			})
+		});
+	12、删除功能
+		users.ejs
+		<a href="/users/remove?tel=<%- data[i].tel %>"><button class="btn btn-xs btn-danger">
+			<span class="glyphicon glyphicon-trash"></span>
+		</button></a>
+		users.js
+		
+		router.get('/remove', function(req, res, next) {
+			const { tel } = req.query;
+		  sql.remove('sh1811', 'users', { tel }).then(() => {
+			  res.redirect('/users');
+		  }).catch((err) => {
+			  res.redirect('/users');
+		  })
+		});
+	13、 模态框修改昵称
+		准备一个模态框 https://v3.bootcss.com/javascript/#modals 取得代码
+		（添加form表单，手机号输入框不可编辑，提交数据到/users/updateAction）
+		users.ejs
+		<button class="btn btn-xs btn-warning" onclick="showModel(<%- data[i].tel %>)">
+			<span class="glyphicon glyphicon-pencil"></span>
+		</button>
+		users.ejs中的js代码中实现方法showModel
+		<script>
+			function showModel (tel) {
+				console.log(111)
+				$('#myModal').modal() // 显示模态框
+				$('#tel').val(tel) // 添加手机号
+			}
+		</script>
+		users.js 中实现更新数据
+		// 更新
+		router.post('/updateAction', function(req, res, next) {
+		  const { tel, nickname } = req.body;
+		  sql.update('sh1811', 'users', 'updateOne', { tel }, {$set: { nickname }})
+		  .then(() => {
+			  res.redirect('/users');
+		  }).catch(err => {
+			  res.redirect('/users');
+		  })
+		});
+	
+	
+	
+	
+	
+	
+	
+	

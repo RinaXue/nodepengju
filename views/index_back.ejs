@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+		<%- include('./header.ejs') %>
+    <h1><%= title %></h1>
+    <p>Welcome to <%= title %></p>
+		<ul>
+			<% for (var i = 0; i < data.length; i++) { %>
+				<li>
+					姓名:<%- data[i].username %>
+					年龄:<%= data[i].age %>
+				<li>
+			<% } %>
+		</ul>
+		<% if (flag) { %>
+			如果为真我就显示
+		<% } else { %>
+			如果为假我就显示
+		<% } %>
+  </body>
+</html>
